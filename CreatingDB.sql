@@ -44,12 +44,58 @@ create table Artworks_Exhibitions (
 	FOREIGN KEY (ExhibitionID) REFERENCES Exhibitions(ExhibitionID)
 )
 
+CREATE TABLE ArtworkPriceAudit (
+    AuditID INT IDENTITY(1,1) PRIMARY KEY,
+    ArtworkID INT,
+    OldPrice DECIMAL(10, 2),
+    NewPrice DECIMAL(10, 2),
+    ModifiedDate DATETIME DEFAULT GETDATE(),
+    ModifiedBy NVARCHAR(100)
+);
+
+-- Artwork'ün Price Update'ini Denetleyen Trigger
+
+CREATE TRIGGER trg_AuditArtworkPriceUpdate
+ON Artworks
+AFTER UPDATE
+AS
+BEGIN
+    -- ArtworkPrice update edildi mi? Edildiyse -->
+    IF UPDATE(ArtworkPrice)
+    BEGIN
+        INSERT INTO ArtworkPriceAudit (ArtworkID, OldPrice, NewPrice, ModifiedDate, ModifiedBy)
+        SELECT 
+            i.ArtworkID,   -- Update edilen row'un Artwork ID'si
+            d.ArtworkPrice AS OldPrice,   -- Update'ten önceki eski fiyat
+            i.ArtworkPrice AS NewPrice,   -- Update'ten sonraki yeni fiyat
+            GETDATE() AS ModifiedDate,    -- Timestamp
+            SYSTEM_USER AS ModifiedBy     -- Current System User
+        FROM 
+            inserted i
+        INNER JOIN 
+            deleted d ON i.ArtworkID = d.ArtworkID;
+    END
+END;
+
+-- Update Example
+
+UPDATE Artworks
+SET ArtworkPrice = 25000.00
+WHERE ArtworkID = 1;
+
+-- Audit Log
+SELECT * FROM ArtworkPriceAudit;
+
+--ALTER TABLE Artworks_Exhibitions
+--ADD PRIMARY KEY (ArtworkID, ExhibitionID); -- create clustered index
+
 CREATE INDEX idx_ArtworkID ON Artworks(ArtworkID)
 --CREATE CLUSTERED INDEX idx_ArtworkID ON Artworks(ArtworkID)
 CREATE INDEX idx_ArtistID ON Artists(ArtistID)
 --CREATE INDEX idx_ArtworksExhibitions_ArtworkID_ExhibitionID ON Artworks_Exhibitions(ArtworkID, ExhibitionID)
---CREATE INDEX idx_ExhibitionID ON Exhibitions(ExhibitionID)
---CREATE INDEX idx_VisitorID ON Visitors(VisitorID)
+
+-- CREATING VIEW, JOINING 3 TABLES, Tüm sonuçlar için LEFT JOIN kullandım. Eseri olmasa dahi veya sergisi de olmasa 
+-- dahi o Artist de gözükecek böylelikle.
 
 CREATE VIEW TotalArtworksByArtist AS 
 SELECT 
@@ -66,10 +112,20 @@ LEFT JOIN
 GROUP BY
 	A.ArtistID, A.ArtistFirstName, A.ArtistLastName
 
+CREATE CLUSTERED INDEX idx_ExhibitionID ON Exhibitions(ExhibitionID);
+--DROP INDEX Visitors.idx_VisitorID
+CREATE CLUSTERED INDEX idx_ArtworkID ON Artworks(ArtworkID);
+
+-- VIEW RESULT
+
 SELECT * FROM TotalArtworksByArtist
+
+-- ADDING EXHIBITIONID FOREIGN KEY
 
 ALTER TABLE Visitors
 add ExhibitionID int foreign key (ExhibitionID) references Exhibitions(ExhibitionID)
+
+-- CREATING Visitor by Date Range Procedure
 
 CREATE PROCEDURE GetVisitorsByDate
 	@StartDate DATE,
@@ -90,6 +146,26 @@ BEGIN
 		VisitorVisitDate
 END;
 
-EXEC GetVisitorsByDate '2024-10-20','2023-09-20'
+-- Exec Procedure --> @StartDate,@EndDate
+
+EXEC GetVisitorsByDate '2020-10-20','2023-09-20'
+
+-- INSERT örneği
 
 INSERT INTO Artworks (ArtistID, ArtworkTitle, ArtworkYear, ArtworkMedium, ArtWorkHeight, ArtworkWidth, ArtworkDepth, ArtworkPrice) VALUES (2, 'Whispers of Time', 2009, 'Oil on Canvas', 100.20, 75.50, 15.30, 20000.50);
+
+SET STATISTICS IO ON;
+
+SELECT * FROM Artworks WHERE ArtworkPrice > 10000;
+--CREATE INDEX idx_ArtworkPrice ON Artworks(ArtworkPrice)
+
+SET STATISTICS IO OFF;
+
+SET STATISTICS TIME ON;
+
+SELECT * FROM Artworks WHERE ArtworkPrice > 10000;
+
+SET STATISTICS TIME OFF;
+
+DROP INDEX Artworks.idx_ArtworkPrice
+
