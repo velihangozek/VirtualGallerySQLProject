@@ -77,22 +77,103 @@ BEGIN
     END
 END;
 
--- Update Example
+-- Update Example for Trigger
 
 UPDATE Artworks
-SET ArtworkPrice = 25000.00
-WHERE ArtworkID = 1;
+SET ArtworkPrice = 35000.00
+WHERE ArtworkID = 4;
 
 -- Audit Log
 SELECT * FROM ArtworkPriceAudit;
 
+-- RANDOM DATA GENERATION --
+
+-- Artists
+/*
+DECLARE @i INT = 1;
+WHILE @i <= 100000
+BEGIN
+    INSERT INTO Artists (ArtistFirstName, ArtistLastName, ArtistVitalRecord, ArtistBiography)
+    VALUES (
+        LEFT(NEWID(), 8),                  -- Random first name (using part of NEWID())
+        LEFT(NEWID(), 12),                 -- Random last name
+        DATEADD(YEAR, -RAND() * 100, GETDATE()),  -- Random birthdate in the last 100 years
+        LEFT(NEWID(), 100)                 -- Random short biography
+    );
+
+    SET @i = @i + 1;
+END;
+
+-- Artworks
+
+DECLARE @i INT = 1;
+DECLARE @MaxArtistID INT = (SELECT MAX(ArtistID) FROM Artists);
+
+WHILE @i <= 100000
+BEGIN
+    INSERT INTO Artworks (ArtistID, ArtworkTitle, ArtworkYear, ArtworkMedium, ArtworkHeight, ArtworkWidth, ArtworkDepth, ArtworkPrice)
+    VALUES (
+        FLOOR(RAND() * @MaxArtistID) + 1,  -- Random ArtistID from the Artists table
+        'Artwork ' + CAST(@i AS NVARCHAR(100)), -- Sequential artwork title
+        FLOOR(RAND() * 500 + 1500),         -- Random year between 1500 and 2000
+        'Medium ' + CAST(FLOOR(RAND() * 10 + 1) AS NVARCHAR(100)),  -- Random medium(eser malzeme tipi)
+        RAND() * 200 + 50,                 -- Random height 50-250 arası
+        RAND() * 200 + 50,                 -- Random width 50-250 arası
+        RAND() * 100 + 10,                 -- Random depth 10-110 arası
+        RAND() * 100000 + 1000             -- Random price 1000 - 101000 arası
+    );
+
+    SET @i = @i + 1;
+END;
+
+-- EXHIBITIONS
+
+DECLARE @i INT = 1;
+
+WHILE @i <= 100000
+BEGIN
+    INSERT INTO Exhibitions (ExhibitionTitle, ExhibitionStartDate, ExhibitionEndDate, ExhibitionLocation)
+    VALUES (
+        'Exhibition ' + CAST(@i AS NVARCHAR(100)),  -- Random title
+        DATEADD(DAY, FLOOR(RAND() * 365), GETDATE()),  -- Random start date - sonraki yıl için
+        DATEADD(DAY, FLOOR(RAND() * 365) + 10, GETDATE()),  -- Random end date start date'ten sonra
+        LEFT(NEWID(), 10)                          -- Random location
+    );
+
+    SET @i = @i + 1;
+END;
+
+-- ARTWORKS_EXHIBITIONS
+
+DECLARE @i INT = 1;
+DECLARE @MaxArtworkID INT = (SELECT MAX(ArtworkID) FROM Artworks);
+DECLARE @MaxExhibitionID INT = (SELECT MAX(ExhibitionID) FROM Exhibitions);
+
+WHILE @i <= 100000
+BEGIN
+    INSERT INTO Artworks_Exhibitions (ArtworkID, ExhibitionID)
+    VALUES (
+        FLOOR(RAND() * @MaxArtworkID) + 1,      -- Random ArtworkID
+        FLOOR(RAND() * @MaxExhibitionID) + 1    -- Random ExhibitionID
+    );
+
+    SET @i = @i + 1;
+END;
+
+*/
+
+--iptal
 --ALTER TABLE Artworks_Exhibitions
 --ADD PRIMARY KEY (ArtworkID, ExhibitionID); -- create clustered index
 
-CREATE INDEX idx_ArtworkID ON Artworks(ArtworkID)
+--iptal
+--CREATE INDEX idx_ArtworkID ON Artworks(ArtworkID)
 --CREATE CLUSTERED INDEX idx_ArtworkID ON Artworks(ArtworkID)
-CREATE INDEX idx_ArtistID ON Artists(ArtistID)
---CREATE INDEX idx_ArtworksExhibitions_ArtworkID_ExhibitionID ON Artworks_Exhibitions(ArtworkID, ExhibitionID)
+
+--iptal
+--CREATE INDEX idx_ArtistID ON Artists(ArtistID)
+
+-- CREATE INDEX idx_ArtworksExhibitions_ArtworkID_ExhibitionID ON Artworks_Exhibitions(ArtworkID, ExhibitionID)
 
 -- CREATING VIEW, JOINING 3 TABLES, Tüm sonuçlar için LEFT JOIN kullandım. Eseri olmasa dahi veya sergisi de olmasa 
 -- dahi o Artist de gözükecek böylelikle.
@@ -148,7 +229,7 @@ END;
 
 -- Exec Procedure --> @StartDate,@EndDate
 
-EXEC GetVisitorsByDate '2020-10-20','2023-09-20'
+EXEC GetVisitorsByDate '2000-10-20','2015-09-20'
 
 -- INSERT örneği
 
